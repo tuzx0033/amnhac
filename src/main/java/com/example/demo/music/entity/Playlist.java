@@ -14,7 +14,7 @@ public class Playlist {
 
     private String name;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "playlist_songs",
         joinColumns = @JoinColumn(name = "playlist_id"),
