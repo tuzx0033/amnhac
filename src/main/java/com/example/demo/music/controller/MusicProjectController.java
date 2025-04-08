@@ -1,6 +1,8 @@
 package com.example.demo.music.controller;
 
+import com.example.demo.music.entity.Playlist;
 import com.example.demo.music.entity.Song;
+import com.example.demo.music.repository.PlaylistRepository;
 import com.example.demo.music.repository.SongRepository;
 import com.example.demo.music.service.SupabaseStorageService;
 import org.jaudiotagger.audio.AudioFile;
@@ -19,7 +21,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-
+import java.util.List; // Thêm dòng này
 @Controller
 @RequestMapping("/api/projects")
 public class MusicProjectController {
@@ -36,6 +38,9 @@ public class MusicProjectController {
     @Value("${supabase.bucket}")
     private String supabaseBucket;
 
+    @Autowired
+    private PlaylistRepository playlistRepository;
+
     @GetMapping("/music")
     public String showMusicPage(
             @RequestParam(value = "page", defaultValue = "0") int page,
@@ -43,11 +48,13 @@ public class MusicProjectController {
             Model model) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Song> songPage = songRepository.findAll(pageable);
+        List<Playlist> playlists = playlistRepository.findAll(); // Lấy danh sách playlist
         model.addAttribute("files", songPage.getContent());
         model.addAttribute("currentPage", songPage.getNumber());
         model.addAttribute("totalPages", songPage.getTotalPages());
         model.addAttribute("supabaseUrl", supabaseUrl);
         model.addAttribute("supabaseBucket", supabaseBucket);
+        model.addAttribute("playlists", playlists); // Truyền vào giao diện
         return "music";
     }
 
@@ -146,6 +153,31 @@ public class MusicProjectController {
         model.addAttribute("currentPage", songPage.getNumber());
         model.addAttribute("totalPages", songPage.getTotalPages());
         model.addAttribute("keyword", keyword); // Giữ từ khóa để hiển thị lại
+        model.addAttribute("supabaseUrl", supabaseUrl);
+        model.addAttribute("supabaseBucket", supabaseBucket);
+        return "music";
+    }
+
+// Trong MusicProjectController.java
+    @PostMapping("/edit")
+    public String editSong(
+            @RequestParam("id") Long id,
+            @RequestParam("title") String title,
+            @RequestParam(value = "artist", required = false) String artist,
+            Model model) {
+        Song song = songRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Song not found"));
+        song.setTitle(title);
+        song.setArtist(artist);
+        songRepository.save(song);
+        model.addAttribute("message", "Song updated successfully: " + title);
+
+        // Tải lại trang hiện tại
+        Pageable pageable = PageRequest.of(0, 5); // Có thể giữ trang hiện tại nếu cần
+        Page<Song> songPage = songRepository.findAll(pageable);
+        model.addAttribute("files", songPage.getContent());
+        model.addAttribute("currentPage", songPage.getNumber());
+        model.addAttribute("totalPages", songPage.getTotalPages());
         model.addAttribute("supabaseUrl", supabaseUrl);
         model.addAttribute("supabaseBucket", supabaseBucket);
         return "music";

@@ -7,16 +7,20 @@
         .file-list { margin-top: 20px; }
         audio { margin: 10px 0; }
         .delete-btn { margin-left: 10px; color: red; }
+        .edit-btn { margin-left: 10px; color: blue; }
+        .add-to-playlist { margin-left: 10px; display: inline; }
         #search { width: 100%; padding: 8px; margin-bottom: 20px; box-sizing: border-box; }
         form { margin-bottom: 20px; }
         button { padding: 5px 10px; }
         .pagination { margin-top: 20px; }
         .pagination button { margin: 0 5px; }
         label { margin-right: 10px; }
+        .edit-form { display: none; margin-top: 10px; }
+        .playlist-section { margin-top: 20px; }
     </style>
 </head>
 <body>
-    <h1>Upload and Play Music</h1>
+    <h1>Upload and Play Music by Minh Tú</h1>
 
     <form method="POST" action="/api/projects/upload" enctype="multipart/form-data">
         <div>
@@ -45,7 +49,7 @@
         </form>
         <ul id="songList" th:if="${files != null and not #lists.isEmpty(files)}" th:each="file : ${files}">
             <li>
-                <span th:text="${file.title + ' - ' + (file.artist != null ? file.artist : 'Unknown') + ' (' + (file.duration / 60) + ':' + (file.duration % 60) + ')'}"></span>
+                <span th:text="${file.title + ' - ' + (file.artist != null ? file.artist : 'Unknown') + ' (' + (file.duration / 60) + ':' + (file.duration % 60 < 10 ? '0' + (file.duration % 60) : file.duration % 60) + ')'}"></span>
                 <audio controls>
                     <source th:src="${file.fileUrl}" type="audio/mpeg">
                     Your browser does not support the audio element.
@@ -54,6 +58,23 @@
                     <input type="hidden" name="fileName" th:value="${file.fileUrl.substring(file.fileUrl.lastIndexOf('/') + 1)}" />
                     <input type="hidden" name="page" th:value="${currentPage}" />
                     <button type="submit" class="delete-btn">Delete</button>
+                </form>
+                <button class="edit-btn" th:onclick="'toggleEditForm(' + ${file.id} + ')'">Edit</button>
+                <form method="POST" th:action="@{/api/projects/edit}" class="edit-form" th:id="'editForm' + ${file.id}">
+                    <input type="hidden" name="id" th:value="${file.id}" />
+                    <label for="'editTitle' + ${file.id}">Title:</label>
+                    <input type="text" th:id="'editTitle' + ${file.id}" name="title" th:value="${file.title}" required />
+                    <label for="'editArtist' + ${file.id}">Artist:</label>
+                    <input type="text" th:id="'editArtist' + ${file.id}" name="artist" th:value="${file.artist}" />
+                    <button type="submit">Save</button>
+                </form>
+                <form method="POST" th:action="@{/api/playlists/add-song}" class="add-to-playlist">
+                    <input type="hidden" name="songId" th:value="${file.id}" />
+                    <select name="playlistId" required>
+                        <option value="" disabled selected>Choose a playlist</option>
+                        <option th:each="playlist : ${playlists}" th:value="${playlist.id}" th:text="${playlist.name}"></option>
+                    </select>
+                    <button type="submit">Add to Playlist</button>
                 </form>
             </li>
         </ul>
@@ -71,5 +92,26 @@
             </form>
         </div>
     </div>
+
+    <div class="playlist-section">
+        <h2>Create Playlist</h2>
+        <form method="POST" th:action="@{/api/playlists/create}">
+            <label for="playlistName">Playlist Name:</label>
+            <input type="text" name="name" id="playlistName" required />
+            <button type="submit">Create</button>
+        </form>
+        <a href="/api/playlists">View All Playlists</a>
+    </div>
+
+    <script>
+        function toggleEditForm(id) {
+            const form = document.getElementById('editForm' + id);
+            if (form.style.display === 'block') {
+                form.style.display = 'none';
+            } else {
+                form.style.display = 'block';
+            }
+        }
+    </script>
 </body>
 </html>

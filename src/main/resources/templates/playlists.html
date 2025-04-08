@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Playlists</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .playlist { margin-bottom: 20px; }
+        .song-item { margin-left: 20px; }
+        .delete-playlist-btn { margin-left: 10px; color: red; }
+    </style>
+</head>
+<body>
+    <h1>Your Playlists</h1>
+    <p th:if="${message}" th:text="${message}"></p>
+
+    <div th:if="${playlists != null and not #lists.isEmpty(playlists)}" th:each="playlist : ${playlists}" class="playlist">
+        <h2>
+            <span th:text="${playlist.name}"></span>
+            <form method="POST" th:action="@{/api/playlists/delete}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete playlist \'' + ${playlist.name} + '\'?');">
+                <input type="hidden" name="playlistId" th:value="${playlist.id}" />
+                <button type="submit" class="delete-playlist-btn">Delete</button>
+            </form>
+        </h2>
+        <ul th:if="${playlist.songs != null and not #lists.isEmpty(playlist.songs)}">
+            <li th:each="song : ${playlist.songs}" class="song-item">
+                <span th:text="${song.title + ' - ' + (song.artist != null ? song.artist : 'Unknown')}"></span>
+                <audio controls>
+                    <source th:src="${song.fileUrl}" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+                <form method="POST" th:action="@{/api/playlists/remove-song}" style="display:inline;">
+                    <input type="hidden" name="playlistId" th:value="${playlist.id}" />
+                    <input type="hidden" name="songId" th:value="${song.id}" />
+                    <button type="submit" style="color: red;">Remove</button>
+                </form>
+            </li>
+        </ul>
+        <p th:if="${playlist.songs == null or #lists.isEmpty(playlist.songs)}">No songs in this playlist.</p>
+    </div>
+    <p th:if="${playlists == null or #lists.isEmpty(playlists)}">No playlists available.</p>
+
+    <a href="/api/projects/music">Back to Music</a>
+</body>
+</html>
